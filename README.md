@@ -33,7 +33,7 @@ Browser tests use Playwright Chromium. If it is not installed, run `pnpm exec pl
 
 ## Static deployment
 
-Vite produces `dist/`, containing the entire application. Vercel serves those files with no functions, API routes, backend, database, runtime secrets, or external requests during gameplay. A service worker caches all five games, fonts, and all 1,025 sprites during the first online visit. Wait for the offline-ready status in Settings before your first offline launch. Later launches and games work without a connection. New app versions prompt before reloading, preserving an active match until you choose to update.
+Vite produces `dist/`, containing the entire application. Vercel serves those files with no functions, API routes, backend, database, runtime secrets, or external requests during gameplay. A service worker caches all five games, fonts, and all 1,025 sprites during the first online visit. The sprites download as one static pack and are unpacked into the browser cache, avoiding 1,025 separate network requests. Wait for the offline-ready status in Settings before your first offline launch. Later launches and games work without a connection. New app versions prompt before reloading, preserving an active match until you choose to update.
 
 The repository is connected to the Vercel `pokegenius` project. Pushing `main` deploys production. `vercel.json` supplies the Vite configuration. The project uses `ENABLE_EXPERIMENTAL_COREPACK=1` to respect the pinned pnpm version. Do not commit `.vercel/` or `.env*` files.
 

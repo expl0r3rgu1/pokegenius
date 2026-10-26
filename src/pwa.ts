@@ -24,7 +24,16 @@ export function usePwa() {
     onRegisterError() {
       setError(true);
     },
-    onRegisteredSW() {
+    onRegisteredSW(_url, registration) {
+      const trackInstallation = () => {
+        const worker = registration?.installing;
+        worker?.addEventListener("statechange", () => {
+          if (worker.state === "redundant" && !registration?.active)
+            setError(true);
+        });
+      };
+      registration?.addEventListener("updatefound", trackInstallation);
+      trackInstallation();
       void navigator.serviceWorker.ready
         .then(() => setReady(true))
         .catch(() => setError(true));

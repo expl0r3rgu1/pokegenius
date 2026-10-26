@@ -144,6 +144,14 @@ test.describe("installed app and offline play", () => {
     page,
     context,
   }) => {
+    let packRequests = 0;
+    let individualWorkerRequests = 0;
+    context.on("request", (request) => {
+      const path = new URL(request.url()).pathname;
+      if (path === "/sprites.pack") packRequests++;
+      if (request.serviceWorker() && /^\/sprites\/\d+\.png$/.test(path))
+        individualWorkerRequests++;
+    });
     await page.goto("/");
     const manifest = await page.evaluate(async () => {
       const link = document.querySelector<HTMLLinkElement>(
@@ -171,6 +179,19 @@ test.describe("installed app and offline play", () => {
           ),
         );
     });
+    expect(packRequests).toBe(1);
+    expect(individualWorkerRequests).toBe(0);
+    expect(
+      await page.evaluate(async () => {
+        const name = (await caches.keys()).find((name) =>
+          name.startsWith("pokegenius-sprites-"),
+        );
+        if (!name) return 0;
+        return (await (await caches.open(name)).keys()).filter((request) =>
+          new URL(request.url).pathname.startsWith("/sprites/"),
+        ).length;
+      }),
+    ).toBe(1025);
     await context.setOffline(true);
     await page.reload();
     await expect(page.getByRole("article")).toHaveCount(5);
