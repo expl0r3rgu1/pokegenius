@@ -144,7 +144,10 @@ describe("Pokédoku", () => {
         guess(m, answersFor(m.board, cell, poolFor(m.config))[0].id, cell),
       );
     }
-    expect(m.phase).toBe("roundEnd");
+    expect(m.phase).toBe("finished");
+    expect(m.config.rounds).toBe(1);
+    expect(m.scores).toEqual([0, 0]);
+    expect(m.roundScores).toEqual([0, 0]);
     expect(lineWinner(m.cells)).toBe(2);
     expect(m.results[0].winner).toBe(2);
   });
@@ -154,7 +157,7 @@ describe("Pokédoku", () => {
       m = next(
         guess(m, answersFor(m.board, cell, poolFor(m.config))[0].id, cell),
       );
-    expect(m.phase).toBe("roundEnd");
+    expect(m.phase).toBe("finished");
     expect(m.results[0].winner).toBe(0);
   });
   it("uses absolute deadlines, rejects expired guesses, and cannot switch twice on stale timer events", () => {
@@ -194,6 +197,20 @@ describe("safe local recovery and names", () => {
       },
     ])
       expect(parseMatch(raw)).toBeNull();
+  });
+  it("recovers existing two-player Pokédoku boards without restoring points or extra rounds", () => {
+    const m = createMatch({ ...config, game: "doku", players: 2 }, 100);
+    const saved = {
+      ...m,
+      config: { ...m.config, rounds: 5 },
+      scores: [20, 10],
+      roundScores: [2, 1],
+    };
+    const recovered = parseMatch(saved);
+    expect(recovered?.config.rounds).toBe(1);
+    expect(recovered?.scores).toEqual([0, 0]);
+    expect(recovered?.cells).toEqual(m.cells);
+    expect(recovered?.deadline).toBe(m.deadline);
   });
   it("accepts human spellings, punctuation and gender suffixes without changing the species", () => {
     const all = poolFor({ ...config, groups: [0, 1, 2] });

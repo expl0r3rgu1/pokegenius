@@ -21,7 +21,8 @@ async function setup(page: Page, game: "shadow" | "doku", players = 1) {
     await page
       .getByRole("button", { name: "Con un amico", exact: true })
       .click();
-  await page.getByRole("button", { name: "3", exact: true }).click();
+  if (!(game === "doku" && players === 2))
+    await page.getByRole("button", { name: "3", exact: true }).click();
   await page.getByRole("button", { name: "Si gioca!", exact: true }).click();
 }
 async function answer(page: Page, name: string) {

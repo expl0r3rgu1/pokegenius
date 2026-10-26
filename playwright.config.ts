@@ -6,6 +6,7 @@ export default defineConfig({
   use: {
     baseURL: process.env.TEST_BASE_URL ?? "http://127.0.0.1:4175",
     headless: true,
+    serviceWorkers: "block",
     trace: "retain-on-failure",
   },
   projects: [

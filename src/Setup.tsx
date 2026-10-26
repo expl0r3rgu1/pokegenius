@@ -27,7 +27,12 @@ export function Setup({
           : initial.players > 2
             ? 2
             : initial.players,
-    rounds: game === "pokedle" ? 1 : initial.rounds === 1 ? 5 : initial.rounds,
+    rounds:
+      game === "pokedle" || (game === "doku" && initial.players === 2)
+        ? 1
+        : initial.rounds === 1
+          ? 5
+          : initial.rounds,
   });
   const groups = [
     {
@@ -87,7 +92,18 @@ export function Setup({
                 key={players}
                 aria-pressed={config.players === players}
                 className={config.players === players ? "selected" : ""}
-                onClick={() => setConfig({ ...config, players })}
+                onClick={() =>
+                  setConfig({
+                    ...config,
+                    players,
+                    rounds:
+                      game === "doku" && players === 2
+                        ? 1
+                        : config.rounds === 1
+                          ? 5
+                          : config.rounds,
+                  })
+                }
               >
                 {players === 1 ? (
                   <UserRound size={18} />
@@ -132,7 +148,7 @@ export function Setup({
           ))}
         </fieldset>
       )}
-      {game !== "pokedle" && (
+      {game !== "pokedle" && !(game === "doku" && config.players === 2) && (
         <fieldset>
           <legend>
             {game === "shadow" && config.players === 1
@@ -205,6 +221,14 @@ export function Setup({
           ))}
         </div>
       </fieldset>
+      {game === "doku" && config.players === 2 && (
+        <p className="duel-rule">
+          {t(
+            "Una griglia. Due allenatori. Fai tris per vincere!",
+            "One board. Two trainers. Three in a row wins!",
+          )}
+        </p>
+      )}
       <p className="selection-summary" role="status">
         {config.groups.length
           ? `${poolFor(config).length} Pokémon ${t("da scoprire", "to discover")} · ${config.groups.flatMap((g) => GROUPS[g]).length} ${t("generazioni", "generations")}`

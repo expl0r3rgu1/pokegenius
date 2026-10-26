@@ -86,7 +86,8 @@ export function searchPokemon(text: string, pool: Pokemon[]) {
     .sort(
       (a, b) =>
         Number(!normalize(a.name).startsWith(n)) -
-        Number(!normalize(b.name).startsWith(n)),
+          Number(!normalize(b.name).startsWith(n)) ||
+        a.name.localeCompare(b.name),
     )
     .slice(0, 7);
 }
@@ -198,6 +199,8 @@ export function createMatch(
   now = Date.now(),
   random = Math.random,
 ): Match {
+  if (config.game === "doku" && config.players === 2)
+    config = { ...config, rounds: 1 };
   const pool = poolFor(config);
   const starter: Player =
     config.players === 2 && config.game === "shadow" && random() >= 0.5 ? 2 : 1;
@@ -350,8 +353,10 @@ export function reducer(state: Match, action: Action): Match {
         ? m.config.players === 1
           ? 100
           : 1
-        : 10;
-      m.roundScores[m.player - 1]++;
+        : m.config.players === 1
+          ? 10
+          : 0;
+      if (isShadow || m.config.players === 1) m.roundScores[m.player - 1]++;
     }
     if (!isShadow && (correct || m.config.players === 1))
       m.cells[cell!] = { pokemon: p?.id ?? null, owner: m.player, correct };
@@ -375,6 +380,13 @@ export function reducer(state: Match, action: Action): Match {
           round: m.round,
         },
       ];
+    if (
+      !isShadow &&
+      m.config.players === 2 &&
+      (lineWinner(m.cells) || m.cells.every(Boolean))
+    ) {
+      return { ...finishRound(m), phase: "finished", feedback: null };
+    }
     m.phase = "feedback";
     return m;
   }
@@ -430,4 +442,21 @@ export function reducer(state: Match, action: Action): Match {
     };
   }
   return state;
+}
+
+export function normalizeDokuDuel(m: Match): Match {
+  if (m.config.game !== "doku" || m.config.players !== 2) return m;
+  const winner = lineWinner(m.cells);
+  const finished = !!winner || m.cells.every(Boolean);
+  return {
+    ...m,
+    config: { ...m.config, rounds: 1 },
+    round: 1,
+    scores: [0, 0],
+    roundScores: [0, 0],
+    results: finished ? [{ scores: [0, 0], winner }] : [],
+    phase: finished ? "finished" : m.phase,
+    feedback: finished ? null : m.feedback,
+    deadline: finished ? null : m.deadline,
+  };
 }

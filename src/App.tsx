@@ -12,7 +12,10 @@ import {
   Gamepad2,
   Music2,
   Volume2,
-  VolumeX,
+  Settings2,
+  Vibrate,
+  Download,
+  WifiOff,
 } from "lucide-react";
 import { Dialog, Pokeball } from "./components";
 import { LanguageContext, useText, type Lang } from "./context";
@@ -37,6 +40,8 @@ import { Home } from "./Home";
 import { Rules } from "./Rules";
 import { makeMusicBuffer } from "./music";
 import { Setup } from "./Setup";
+import { useWebHaptics } from "web-haptics/react";
+import { usePwa } from "./pwa";
 import {
   KEYS,
   read,
@@ -76,7 +81,18 @@ function GameRoom({
   );
   const [config, setConfig] = useState(() => savedConfig() ?? DEFAULT_CONFIG);
   const [setup, setSetup] = useState<Game | null>(null);
-  const [modal, setModal] = useState<"rules" | "credits" | null>(null);
+  const [modal, setModal] = useState<
+    "rules" | "credits" | "settings" | "install" | null
+  >(null);
+  const pwa = usePwa();
+  const { trigger, cancel } = useWebHaptics({ debug: false });
+  const [haptics, setHaptics] = useState(() => read(KEYS.haptics) !== false);
+  const pulse = useCallback(
+    (pattern: string) => {
+      if (haptics) void trigger(pattern)?.catch(() => {});
+    },
+    [haptics, trigger],
+  );
   const [sound, setSound] = useState(() => read(KEYS.sound) === true);
   const [music, setMusic] = useState(() => read(KEYS.music) === true);
   const [audioReady, setAudioReady] = useState(0);
@@ -114,6 +130,31 @@ function GameRoom({
         : "PokéGenius - Your next genius move";
   }, [lang]);
   useEffect(() => {
+    const viewport = window.visualViewport;
+    const resize = () => {
+      const height = viewport?.height ?? window.innerHeight;
+      document.documentElement.style.setProperty(
+        "--usable-height",
+        `${Math.round(height)}px`,
+      );
+      document.documentElement.classList.toggle(
+        "keyboard-open",
+        height < window.innerHeight * 0.78 &&
+          document.activeElement?.tagName === "INPUT",
+      );
+    };
+    resize();
+    viewport?.addEventListener("resize", resize);
+    window.addEventListener("resize", resize);
+    document.addEventListener("focusout", resize);
+    return () => {
+      viewport?.removeEventListener("resize", resize);
+      window.removeEventListener("resize", resize);
+      document.removeEventListener("focusout", resize);
+      document.documentElement.classList.remove("keyboard-open");
+    };
+  }, []);
+  useEffect(() => {
     const handler = () => setScreen("home");
     window.addEventListener("popstate", handler);
     return () => window.removeEventListener("popstate", handler);
@@ -147,9 +188,10 @@ function GameRoom({
   }, [sound, match?.phase, match?.feedback?.kind]);
   const unlockAudio = () => {
     try {
+      const created = !audio.current;
       audio.current ??= new AudioContext();
       void audio.current.resume().catch(() => {});
-      setAudioReady((value) => value + 1);
+      if (created) setAudioReady((value) => value + 1);
     } catch {
       /* Audio is optional on unsupported browsers. */
     }
@@ -174,6 +216,22 @@ function GameRoom({
       source.disconnect();
     };
   }, [music, audioReady]);
+  const lastHapticMatch = useRef(match);
+  useEffect(() => {
+    if (lastHapticMatch.current === match) return;
+    lastHapticMatch.current = match;
+    if (match?.phase === "feedback")
+      pulse(match.feedback?.kind === "correct" ? "success" : "error");
+    if (match?.phase === "finished")
+      pulse(
+        "extra" in match && match.config.game === "pokedle" && !match.scores[0]
+          ? "error"
+          : "success",
+      );
+  }, [match, pulse]);
+  const install = async () => {
+    if (!(await pwa.install())) setModal("install");
+  };
   const start = (next: Config) => {
     if (sound) unlockAudio();
     setConfig(next);
@@ -187,7 +245,16 @@ function GameRoom({
     openGame();
   };
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell ${screen === "game" ? "is-playing" : "is-home"}`}
+      onClickCapture={(event) => {
+        if (
+          event.target instanceof Element &&
+          event.target.closest("button:not(:disabled)")
+        )
+          pulse("selection");
+      }}
+    >
       <a className="skip-link" href="#main">
         {t("Vai al contenuto", "Skip to content")}
       </a>
@@ -229,44 +296,43 @@ function GameRoom({
             onClick={() => setLang(lang === "it" ? "en" : "it")}
           >
             {lang.toUpperCase()}
-            <span>⌄</span>
           </button>
+          {!pwa.installed && (
+            <button
+              className="icon-button install-button"
+              aria-label={t("Installa il gioco", "Install game")}
+              onClick={() => {
+                void install();
+              }}
+            >
+              <Download size={19} />
+            </button>
+          )}
           <button
-            className={`icon-button music-button ${music ? "music-enabled" : ""}`}
-            aria-label={
-              music
-                ? t("Disattiva musica", "Mute music")
-                : t("Attiva musica", "Enable music")
-            }
-            aria-pressed={music}
-            onClick={() => {
-              const value = !music;
-              setMusic(value);
-              write(KEYS.music, value);
-              if (value) unlockAudio();
-            }}
+            className="icon-button"
+            aria-label={t("Impostazioni", "Settings")}
+            onClick={() => setModal("settings")}
           >
-            <Music2 size={18} />
-          </button>
-          <button
-            className="icon-button sound-button"
-            aria-label={
-              sound
-                ? t("Disattiva suoni", "Mute sound")
-                : t("Attiva suoni", "Enable sound")
-            }
-            aria-pressed={sound}
-            onClick={() => {
-              const value = !sound;
-              setSound(value);
-              write(KEYS.sound, value);
-              if (value) unlockAudio();
-            }}
-          >
-            {sound ? <Volume2 size={19} /> : <VolumeX size={19} />}
+            <Settings2 size={19} />
           </button>
         </div>
       </header>
+      {pwa.needRefresh && (
+        <div className="update-notice" role="status">
+          <span>{t("Un aggiornamento è pronto.", "An update is ready.")}</span>
+          <button
+            className="text-button"
+            onClick={() => {
+              void pwa.update();
+            }}
+          >
+            {t("Aggiorna", "Update")}
+          </button>
+          <button className="text-button" onClick={pwa.dismissUpdate}>
+            {t("Dopo", "Later")}
+          </button>
+        </div>
+      )}
       {storageError && (
         <div className="storage-notice" role="status">
           {t(
@@ -337,6 +403,127 @@ function GameRoom({
           onClose={() => setSetup(null)}
           onStart={start}
         />
+      )}
+      {modal === "settings" && (
+        <Dialog
+          title={t("Impostazioni", "Settings")}
+          onClose={() => setModal(null)}
+        >
+          <div className="settings-list">
+            <button
+              aria-pressed={sound}
+              onClick={() => {
+                const value = !sound;
+                setSound(value);
+                write(KEYS.sound, value);
+                if (value) unlockAudio();
+              }}
+            >
+              <Volume2 size={21} />
+              <span>{t("Effetti sonori", "Sound effects")}</span>
+              <strong>{sound ? "ON" : "OFF"}</strong>
+            </button>
+            <button
+              aria-pressed={music}
+              onClick={() => {
+                const value = !music;
+                setMusic(value);
+                write(KEYS.music, value);
+                if (value) unlockAudio();
+              }}
+            >
+              <Music2 size={21} />
+              <span>{t("Musica", "Music")}</span>
+              <strong>{music ? "ON" : "OFF"}</strong>
+            </button>
+            <button
+              aria-pressed={haptics}
+              onClick={() => {
+                const value = !haptics;
+                setHaptics(value);
+                write(KEYS.haptics, value);
+                if (!value) cancel();
+                if (value) void trigger("success")?.catch(() => {});
+              }}
+            >
+              <Vibrate size={21} />
+              <span>{t("Vibrazione", "Haptic feedback")}</span>
+              <strong>{haptics ? "ON" : "OFF"}</strong>
+            </button>
+          </div>
+          <p className="settings-note">
+            {t(
+              "La vibrazione dipende dal dispositivo e dal browser.",
+              "Haptic feedback depends on your device and browser.",
+            )}
+          </p>
+          <div className="offline-status">
+            <WifiOff size={18} />
+            <span>
+              {pwa.ready
+                ? t("Pronto a giocare anche offline.", "Ready to play offline.")
+                : pwa.error
+                  ? t(
+                      "Salvataggio offline non disponibile. Riprova con una connessione attiva.",
+                      "Offline setup is unavailable. Try again with a connection.",
+                    )
+                  : t(
+                      "Prepariamo i giochi per l’uso offline...",
+                      "Preparing the games for offline play...",
+                    )}
+            </span>
+          </div>
+          {!pwa.installed && (
+            <button
+              className="button primary full"
+              onClick={() => {
+                void install();
+              }}
+            >
+              <Download size={18} />
+              {t("Installa il gioco", "Install game")}
+            </button>
+          )}
+        </Dialog>
+      )}
+      {modal === "install" && (
+        <Dialog
+          title={t("PokéGenius, sempre con te.", "Keep PokéGenius with you.")}
+          onClose={() => setModal(null)}
+        >
+          <div className="install-intro">
+            <img src="/icons/icon-192.png" alt="" width="72" height="72" />
+            <div>
+              <strong>PokéGenius</strong>
+              <p>
+                {t(
+                  "Un tocco e si gioca. Anche offline.",
+                  "One tap to play. Offline, too.",
+                )}
+              </p>
+            </div>
+          </div>
+          <div className="install-instructions">
+            <p>
+              {t(
+                "Su iPhone o iPad: apri il menu Condividi e scegli Aggiungi alla schermata Home.",
+                "On iPhone or iPad: open the Share menu and choose Add to Home Screen.",
+              )}
+            </p>
+            <p>
+              {t(
+                "Su Android o desktop: apri il menu del browser e scegli Installa app o Aggiungi alla schermata Home.",
+                "On Android or desktop: open your browser menu and choose Install app or Add to Home Screen.",
+              )}
+            </p>
+            <p>
+              {t(
+                "Per il primo avvio offline, attendi la conferma nelle impostazioni.",
+                "For your first offline launch, wait for the ready message in settings.",
+              )}
+            </p>
+          </div>
+        </Dialog>
       )}
       {modal === "rules" && (
         <Dialog

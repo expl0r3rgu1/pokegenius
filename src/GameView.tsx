@@ -56,6 +56,7 @@ export function GameView({
   const pool = poolFor(m.config);
   const shadow = m.config.game === "shadow";
   const solo = m.config.players === 1;
+  const duel = !shadow && !solo;
   const currentPokemon = byId.get(m.queue[m.index]);
   const revealed = m.phase === "feedback" && m.feedback?.kind !== "steal";
   const roundDone = m.phase === "roundEnd";
@@ -97,7 +98,9 @@ export function GameView({
   if (m.phase === "finished")
     return <Results match={m} onHome={onHome} onReplay={onReplay} />;
   return (
-    <div className="play-page">
+    <div
+      className={`play-page ${shadow ? "shadow-page" : "doku-page"} ${duel ? "duel-page" : ""}`}
+    >
       <div className="play-heading">
         <button className="text-button back-link" onClick={onHome}>
           <ArrowLeft size={18} />
@@ -127,26 +130,34 @@ export function GameView({
           </p>
         </div>
         <span className="round-pill">
-          {shadow && solo ? t("Sagoma", "Silhouette") : "Round"}{" "}
-          <strong>
-            {Math.min(progress, m.config.rounds)} / {m.config.rounds}
-          </strong>
+          {duel ? (
+            t("Fai tris!", "Three in a row!")
+          ) : (
+            <>
+              {shadow && solo ? t("Sagoma", "Silhouette") : "Round"}{" "}
+              <strong>
+                {Math.min(progress, m.config.rounds)} / {m.config.rounds}
+              </strong>
+            </>
+          )}
         </span>
       </div>
-      <div className="match-progress" aria-hidden="true">
-        {Array.from({ length: m.config.rounds }, (_, i) => (
-          <span
-            key={i}
-            className={
-              i < progress - 1
-                ? "complete"
-                : i === progress - 1
-                  ? "current"
-                  : ""
-            }
-          />
-        ))}
-      </div>
+      {!duel && (
+        <div className="match-progress" aria-hidden="true">
+          {Array.from({ length: m.config.rounds }, (_, i) => (
+            <span
+              key={i}
+              className={
+                i < progress - 1
+                  ? "complete"
+                  : i === progress - 1
+                    ? "current"
+                    : ""
+              }
+            />
+          ))}
+        </div>
+      )}
       {m.phase === "coin" ? (
         <div className="coin-stage">
           <span className="eyebrow">
@@ -200,73 +211,75 @@ export function GameView({
         </div>
       ) : (
         <>
-          <div className="scoreboard">
-            {solo ? (
-              <>
-                <div>
-                  <span>{t("Punteggio", "Score")}</span>
-                  <strong>
-                    {m.scores[0]}
-                    <small> pt</small>
-                  </strong>
-                </div>
-                <div>
-                  <span>
-                    {shadow
-                      ? t("Risposte corrette", "Correct answers")
-                      : t("Caselle corrette", "Correct cells")}
-                  </span>
-                  <strong>
-                    {shadow ? m.scores[0] / 100 : m.scores[0] / 10}
-                    <small>
-                      {" "}
-                      / {shadow ? m.config.rounds : m.config.rounds * 9}
-                    </small>
-                  </strong>
-                </div>
-              </>
-            ) : (
-              <>
-                <div
-                  className={`player-score player-one ${m.player === 1 && !roundDone ? "active-player" : ""}`}
-                >
-                  <span>
-                    <i />
-                    {t("Giocatore 1", "Player 1")}
-                  </span>
-                  <strong>
-                    {shadow ? m.roundScores[0] : m.scores[0]}
-                    <small> {shadow ? "pt" : "pt"}</small>
-                  </strong>
-                  {!shadow && (
-                    <small>
-                      {m.results.filter((r) => r.winner === 1).length}{" "}
-                      {t("round vinti", "rounds won")}
-                    </small>
-                  )}
-                </div>
-                <div className="versus">vs</div>
-                <div
-                  className={`player-score player-two ${m.player === 2 && !roundDone ? "active-player" : ""}`}
-                >
-                  <span>
-                    <i />
-                    {t("Giocatore 2", "Player 2")}
-                  </span>
-                  <strong>
-                    {shadow ? m.roundScores[1] : m.scores[1]}
-                    <small> pt</small>
-                  </strong>
-                  {!shadow && (
-                    <small>
-                      {m.results.filter((r) => r.winner === 2).length}{" "}
-                      {t("round vinti", "rounds won")}
-                    </small>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
+          {!duel && (
+            <div className="scoreboard">
+              {solo ? (
+                <>
+                  <div>
+                    <span>{t("Punteggio", "Score")}</span>
+                    <strong>
+                      {m.scores[0]}
+                      <small> pt</small>
+                    </strong>
+                  </div>
+                  <div>
+                    <span>
+                      {shadow
+                        ? t("Risposte corrette", "Correct answers")
+                        : t("Caselle corrette", "Correct cells")}
+                    </span>
+                    <strong>
+                      {shadow ? m.scores[0] / 100 : m.scores[0] / 10}
+                      <small>
+                        {" "}
+                        / {shadow ? m.config.rounds : m.config.rounds * 9}
+                      </small>
+                    </strong>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div
+                    className={`player-score player-one ${m.player === 1 && !roundDone ? "active-player" : ""}`}
+                  >
+                    <span>
+                      <i />
+                      {t("Giocatore 1", "Player 1")}
+                    </span>
+                    <strong>
+                      {shadow ? m.roundScores[0] : m.scores[0]}
+                      <small> {shadow ? "pt" : "pt"}</small>
+                    </strong>
+                    {!shadow && (
+                      <small>
+                        {m.results.filter((r) => r.winner === 1).length}{" "}
+                        {t("round vinti", "rounds won")}
+                      </small>
+                    )}
+                  </div>
+                  <div className="versus">vs</div>
+                  <div
+                    className={`player-score player-two ${m.player === 2 && !roundDone ? "active-player" : ""}`}
+                  >
+                    <span>
+                      <i />
+                      {t("Giocatore 2", "Player 2")}
+                    </span>
+                    <strong>
+                      {shadow ? m.roundScores[1] : m.scores[1]}
+                      <small> pt</small>
+                    </strong>
+                    {!shadow && (
+                      <small>
+                        {m.results.filter((r) => r.winner === 2).length}{" "}
+                        {t("round vinti", "rounds won")}
+                      </small>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
           <div
             className={`game-layout ${shadow ? "shadow-layout" : "doku-layout"} ${solo ? "" : "multi-game"}`}
           >
@@ -332,92 +345,12 @@ export function GameView({
                   </span>
                 </div>
               ) : (
-                <div className="board-wrap">
-                  <div className="board-instruction">
-                    {roundDone
-                      ? t("Il round è concluso", "This round is over")
-                      : selected !== null
-                        ? `${categoryName(m.board.rows[Math.floor(selected / 3)], t)} + ${categoryName(m.board.cols[selected % 3], t)}`
-                        : t(
-                            "Tocca una casella per iniziare",
-                            "Pick a cell to get started",
-                          )}
-                    <span>{m.cells.filter(Boolean).length} / 9</span>
-                  </div>
-                  <div
-                    className="doku-board"
-                    role="group"
-                    aria-label={t("Griglia Pokédoku", "Pokédoku board")}
-                  >
-                    <div className="board-corner">
-                      <Pokeball />
-                    </div>
-                    {m.board.cols.map((cat, i) => (
-                      <div className="board-header" key={i}>
-                        <TypeBadge category={cat} />
-                      </div>
-                    ))}
-                    {m.board.rows.map((cat, row) => (
-                      <div className="board-row" key={row}>
-                        <div className="board-header">
-                          <TypeBadge category={cat} />
-                        </div>
-                        {[0, 1, 2].map((col) => {
-                          const index = row * 3 + col;
-                          const cell = m.cells[index];
-                          const solution =
-                            showSolutions && !cell?.correct
-                              ? answersFor(m.board, index, pool)[0]
-                              : null;
-                          const label = `${categoryName(cat, t)} + ${categoryName(m.board.cols[col], t)}${cell ? `: ${cell.pokemon ? byId.get(cell.pokemon)?.name : t("Passata", "Passed")}, ${cell.correct ? t("corretto", "correct") : t("errato", "incorrect")}` : ""}`;
-                          return (
-                            <button
-                              key={index}
-                              className={`board-cell ${selected === index && m.phase === "playing" ? "cell-selected" : ""} ${cell ? (cell.correct ? `cell-owned owner-${cell.owner}` : "cell-wrong") : ""} ${solution ? "cell-solution" : ""}`}
-                              aria-label={label}
-                              aria-pressed={selected === index}
-                              disabled={!!cell || m.phase !== "playing"}
-                              onClick={() => setSelected(index)}
-                            >
-                              {cell?.pokemon || solution ? (
-                                <>
-                                  <Sprite id={solution?.id ?? cell!.pokemon!} />
-                                  <span className="cell-name">
-                                    {solution?.name ??
-                                      byId.get(cell!.pokemon!)?.name}
-                                  </span>
-                                  {cell && !solution && (
-                                    <span className="cell-check">
-                                      {cell.correct ? (
-                                        <Check size={13} />
-                                      ) : (
-                                        <X size={13} />
-                                      )}
-                                    </span>
-                                  )}
-                                </>
-                              ) : cell ? (
-                                <X size={24} />
-                              ) : (
-                                <span className="cell-plus">+</span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                  <p className="board-footnote">
-                    {t(
-                      "Tipi attuali. Forme base.",
-                      "Current types. Default forms.",
-                    )}{" "}
-                    {t(
-                      "Puoi riutilizzare lo stesso Pokémon.",
-                      "You can reuse the same Pokémon.",
-                    )}
-                  </p>
-                </div>
+                <DokuBoard
+                  match={m}
+                  selected={selected}
+                  onSelect={setSelected}
+                  showSolutions={showSolutions}
+                />
               )}
             </div>
             <aside className="game-controls">
@@ -563,7 +496,7 @@ export function GameView({
                             : ""}
                         </strong>{" "}
                         {t("è la risposta giusta.", "is a perfect match.")}{" "}
-                        <span className="points">+10 pt</span>
+                        {solo && <span className="points">+10 pt</span>}
                       </>
                     ) : m.feedback.pokemon ? (
                       t(
@@ -668,8 +601,8 @@ export function GameView({
                           "One attempt per cell, 10 points per correct answer. Aim for 90!",
                         )
                       : t(
-                          "Conquista tre caselle in fila, in colonna o in diagonale per vincere il round.",
-                          "Claim three cells in a row, column, or diagonal to win the round.",
+                          "Conquista tre caselle in fila, in colonna o in diagonale per vincere.",
+                          "Claim three cells in a row, column, or diagonal to win.",
                         )}
                 </p>
               </div>
@@ -693,6 +626,44 @@ function Results({
   const t = useText();
   const solo = m.config.players === 1;
   const winner = matchWinner(m);
+  if (m.config.game === "doku" && !solo)
+    return (
+      <section className="results-page duel-results">
+        <p className="results-game">Pokédoku</p>
+        <div className="results-medal">
+          <Trophy size={32} />
+        </div>
+        <h1>
+          {winner
+            ? t(`Vince il giocatore ${winner}!`, `Player ${winner} wins!`)
+            : t("Una bella sfida. Pareggio!", "A worthy showdown. A draw!")}
+        </h1>
+        <p className="results-subtitle">
+          {winner
+            ? t(
+                "Tris! Tre caselle, una vittoria.",
+                "Three in a row. That's a win!",
+              )
+            : t("Griglia piena, nessun tris.", "Full board, no winning line.")}
+        </p>
+        <DokuBoard
+          match={m}
+          selected={null}
+          onSelect={() => {}}
+          showSolutions={false}
+        />
+        <div className="results-actions">
+          <button className="button primary" onClick={onReplay}>
+            <RotateCcw size={18} />
+            {t("Giochiamo ancora", "Play again")}
+          </button>
+          <button className="button secondary" onClick={onHome}>
+            <ArrowLeft size={17} />
+            {t("Sala giochi", "Game room")}
+          </button>
+        </div>
+      </section>
+    );
   const total =
     m.config.game === "shadow" ? m.config.rounds * 100 : m.config.rounds * 90;
   return (
@@ -836,5 +807,124 @@ function Results({
         </div>
       )}
     </section>
+  );
+}
+
+function DokuBoard({
+  match: m,
+  selected,
+  onSelect,
+  showSolutions,
+}: {
+  match: Match;
+  selected: number | null;
+  onSelect: (cell: number) => void;
+  showSolutions: boolean;
+}) {
+  const t = useText();
+  const pool = poolFor(m.config);
+  const duel = m.config.players === 2;
+  const winner = lineWinner(m.cells);
+  const lines = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+  ];
+  const winning = winner
+    ? (lines.find((line) =>
+        line.every((i) => m.cells[i]?.correct && m.cells[i]?.owner === winner),
+      ) ?? [])
+    : [];
+  return (
+    <div className={`board-wrap ${duel ? "duel-board" : ""}`}>
+      <div className="board-instruction">
+        {m.phase === "finished"
+          ? t("La griglia finale", "The final board")
+          : m.phase === "roundEnd"
+            ? t("Il round è concluso", "This round is over")
+            : selected !== null
+              ? `${categoryName(m.board.rows[Math.floor(selected / 3)], t)} + ${categoryName(m.board.cols[selected % 3], t)}`
+              : t(
+                  "Tocca una casella per iniziare",
+                  "Pick a cell to get started",
+                )}
+        <span>{m.cells.filter(Boolean).length} / 9</span>
+      </div>
+      <div
+        className="doku-board"
+        role="group"
+        aria-label={t("Griglia Pokédoku", "Pokédoku board")}
+      >
+        <div className="board-corner">
+          <Pokeball />
+        </div>
+        {m.board.cols.map((cat, i) => (
+          <div className="board-header" key={i}>
+            <TypeBadge category={cat} />
+          </div>
+        ))}
+        {m.board.rows.map((cat, row) => (
+          <div className="board-row" key={row}>
+            <div className="board-header">
+              <TypeBadge category={cat} />
+            </div>
+            {[0, 1, 2].map((col) => {
+              const index = row * 3 + col;
+              const cell = m.cells[index];
+              const solution =
+                showSolutions && !cell?.correct
+                  ? answersFor(m.board, index, pool)[0]
+                  : null;
+              const label = `${categoryName(cat, t)} + ${categoryName(m.board.cols[col], t)}${cell ? `: ${cell.pokemon ? byId.get(cell.pokemon)?.name : t("Passata", "Passed")}, ${cell.correct ? t("corretto", "correct") : t("errato", "incorrect")}${duel ? `, ${t("giocatore", "player")} ${cell.owner}` : ""}` : ""}`;
+              return (
+                <button
+                  key={index}
+                  className={`board-cell ${selected === index && m.phase === "playing" ? "cell-selected" : ""} ${cell ? (cell.correct ? `cell-owned owner-${cell.owner}` : "cell-wrong") : ""} ${solution ? "cell-solution" : ""} ${winning.includes(index) ? "cell-winning" : ""}`}
+                  aria-label={label}
+                  aria-pressed={selected === index}
+                  disabled={!!cell || m.phase !== "playing"}
+                  onClick={() => onSelect(index)}
+                >
+                  {cell?.pokemon || solution ? (
+                    <>
+                      <Sprite id={solution?.id ?? cell!.pokemon!} />
+                      <span className="cell-name">
+                        {solution?.name ?? byId.get(cell!.pokemon!)?.name}
+                      </span>
+                      {cell && !solution && (
+                        <span className="cell-check">
+                          {duel && cell.correct ? (
+                            `P${cell.owner}`
+                          ) : cell.correct ? (
+                            <Check size={13} />
+                          ) : (
+                            <X size={13} />
+                          )}
+                        </span>
+                      )}
+                    </>
+                  ) : cell ? (
+                    <X size={24} />
+                  ) : (
+                    <span className="cell-plus">+</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      <p className="board-footnote">
+        {t(
+          "Tipi attuali. Forme base. Puoi riutilizzare lo stesso Pokémon.",
+          "Current types. Default forms. You can reuse the same Pokémon.",
+        )}
+      </p>
+    </div>
   );
 }
