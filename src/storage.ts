@@ -1,7 +1,14 @@
 import { z } from "zod";
 import { STAT_KEYS, wordFor, type ExtraMatch } from "./extraGames";
 import { maxScore } from "./catalog";
-import { byId, matches, poolFor, type Config, type Match } from "./game";
+import {
+  byId,
+  matches,
+  normalizeDokuDuel,
+  poolFor,
+  type Config,
+  type Match,
+} from "./game";
 
 const gameNames = z.enum(["shadow", "doku", "pokedle", "dex", "stat"]);
 const playerCount = z.union([
@@ -55,7 +62,8 @@ export const configSchema = z
   .refine((c) =>
     c.game === "pokedle"
       ? c.players === 1 && c.rounds === 1
-      : c.rounds !== 1 && (c.game === "dex" || c.players <= 2),
+      : (c.rounds !== 1 || (c.game === "doku" && c.players === 2)) &&
+        (c.game === "dex" || c.players <= 2),
   );
 const matchSchema = z.object({
   version: z.literal(1),
@@ -151,7 +159,7 @@ export function parseMatch(raw: unknown): Match | null {
     m.deadline === null
   )
     return null;
-  return m;
+  return normalizeDokuDuel(m);
 }
 export const KEYS = {
   match: "pokegenius.match.v1",
@@ -160,6 +168,7 @@ export const KEYS = {
   lang: "pokegenius.lang",
   sound: "pokegenius.sound",
   music: "pokegenius.music",
+  haptics: "pokegenius.haptics",
 };
 export function read(key: string): unknown {
   try {

@@ -266,7 +266,6 @@ export function PokemonSearch({
                   className={active === i ? "is-active" : ""}
                 >
                   <span>{p.name}</span>
-                  <small>#{String(p.id).padStart(3, "0")}</small>
                   {active === i && <Check size={16} />}
                 </li>
               ))

@@ -14,6 +14,7 @@ export const GAME_SYMBOLS: Record<Game, string> = {
   stat: "↕",
 };
 export function maxScore(config: Config) {
+  if (config.game === "doku" && config.players === 2) return 0;
   return (
     config.rounds *
     { shadow: 100, doku: 90, pokedle: 1, dex: 150, stat: 100 }[config.game]

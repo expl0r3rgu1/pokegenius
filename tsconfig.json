@@ -12,7 +12,8 @@
     "allowImportingTsExtensions": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "types": ["vite/client", "node"]
+    "types": ["vite/client", "vite-plugin-pwa/react", "node"]
   },
-  "include": ["src", "tests", "vite.config.ts", "playwright.config.ts"]
+  "include": ["src", "tests", "vite.config.ts", "playwright.config.ts"],
+  "exclude": ["src/sw.ts"]
 }

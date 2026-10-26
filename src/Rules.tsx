@@ -60,14 +60,14 @@ export function Rules({ game }: { game?: Game }) {
             </li>
             <li>
               {t(
-                "In due: 40 secondi per turno. Una risposta corretta conquista la casella; un errore o il tempo scaduto passano il turno. Il timer continua anche se cambi scheda. Fai tris per vincere il round. Griglia piena senza tris: pareggio.",
-                "With a friend: 40 seconds per turn. A correct answer claims a cell; a miss or timeout passes the turn. The timer keeps running when you change tabs. Get three in a row to win the round. A full board without a line is a draw.",
+                "In due: 40 secondi per turno. Una risposta corretta conquista la casella; un errore o il tempo scaduto passano il turno. Il timer continua anche se cambi scheda. Fai tris per vincere la partita. Si gioca su una sola griglia, senza punti. Griglia piena senza tris: pareggio.",
+                "With a friend: 40 seconds per turn. A correct answer claims a cell; a miss or timeout passes the turn. The timer keeps running when you change tabs. Get three in a row to win the game. One board, no points. A full board without a line is a draw.",
               )}
             </li>
             <li>
               {t(
-                "Il numero di round scelto è il numero di griglie. In due vince chi conquista più round. Puoi riutilizzare un Pokémon in più caselle. Sono incluse le forme base, con i tipi attuali, senza forme regionali o megaevoluzioni.",
-                "Your round setting is the number of boards. In two-player mode, most round wins takes the match. Pokémon may be reused in different cells. Default forms and current types are used, without regional forms or Mega Evolutions.",
+                "Da solo, il numero di round scelto è il numero di griglie. Puoi riutilizzare un Pokémon in più caselle. Sono incluse le forme base, con i tipi attuali, senza forme regionali o megaevoluzioni.",
+                "In solo play, your round setting is the number of boards. Pokémon may be reused in different cells. Default forms and current types are used, without regional forms or Mega Evolutions.",
               )}
             </li>
           </ul>
